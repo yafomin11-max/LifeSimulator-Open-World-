@@ -1,1 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeSimulator: Open World</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .city-map {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .location-image {
+            font-size: 80px;
+            margin-bottom: 15px;
+        }
+
+        .location-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .location-description {
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .navigation-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-btn:active {
+            background: rgba(255,255,255,0.4);
+            transform: scale(0.95);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+        }
+
+        .action-btn.premium {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #333;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 5px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 8px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 12px;
+            min-width: 80px;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .content-area {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            min-height: 200px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .inventory-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-option {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .building-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .building-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .building-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .crypto-price {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .price-up {
+            color: #4ECDC4;
+        }
+
+        .price-down {
+            color: #FF6B6B;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏙️ LifeSimulator: Open World</h1>
+            <p>Живи, работай, зарабатывай в открытом мире!</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="money">$1,000</div>
+                <div class="stat-label">💵 Деньги</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="energy">100%</div>
+                <div class="stat-label">⚡ Энергия</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="level">1</div>
+                <div class="stat-label">⭐ Уровень</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="time">08:00</div>
+                <div class="stat-label">🕐 Время</div>
+            </div>
+        </div>
+
+        <div class="city-map">
+            <div class="location-image" id="locationImage">🏠</div>
+            <div class="location-name" id="locationName">Ваш дом</div>
+            <div class="location-description" id="locationDescription">Вы находитесь дома. Можно отдохнуть или отправиться в город.</div>
+        </div>
+
+        <div class="navigation-buttons">
+            <button class="nav-btn" onclick="moveToLocation('home')">🏠 Домой</button>
+            <button class="nav-btn" onclick="moveToLocation('work')">💼 Работа</button>
+            <button class="nav-btn" onclick="moveToLocation('city')">🏙️ Город</button>
+            <button class="nav-btn" onclick="moveToLocation('casino')">🎰 Казино</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn" onclick="performAction('work')">💼 Работать</button>
+            <button class="action-btn secondary" onclick="performAction('rest')">😴 Отдыхать</button>
+            <button class="action-btn" onclick="performAction('casino')">🎰 Играть</button>
+            <button class="action-btn secondary" onclick="performAction('crypto')">₿ Крипто</button>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="locations">📍 Локации</div>
+            <div class="tab" data-tab="inventory">🎒 Инвентарь</div>
+            <div class="tab" data-tab="jobs">💼 Работа</div>
+            <div class="tab" data-tab="crypto">₿ Крипто</div>
+            <div class="tab" data-tab="properties">🏠 Недвижимость</div>
+        </div>
+
+        <div class="content-area">
+            <!-- Локации -->
+            <div class="tab-content active" id="locationsContent">
+                <div class="building-list">
+                    <button class="building-btn" onclick="enterBuilding('house')">
+                        🏠 Ваш дом - Отдых и восстановление энергии
+                    </button>
+                    <button class="building-btn" onclick="enterBuilding('office')">
+                        🏢 Офис - Работа программистом
+                    </button>
+                    <button class="building-btn" onclick="enterBuilding('casino')">
+                        🎰 Казино Golden - Испытай удачу
+                    </button>
+                    <button class="building-btn" onclick="enterBuilding('car_dealer')">
+                        🚗 Автосалон - Купить машину
+                    </button>
+                    <button class="building-btn" onclick="enterBuilding('bank')">
+                        🏦 Банк - Инвестиции и кредиты
+                    </button>
+                </div>
+            </div>
+
+            <!-- Инвентарь -->
+            <div class="tab-content" id="inventoryContent">
+                <div class="inventory-item">
+                    <span>🚗 Транспорт:</span>
+                    <span id="inventoryCar">Honda Civic</span>
+                </div>
+                <div class="inventory-item">
+                    <span>🏠 Дом:</span>
+                    <span id="inventoryHouse">Квартира в центре</span>
+                </div>
+                <div class="inventory-item">
+                    <span>💵 Наличные:</span>
+                    <span id="inventoryCash">$1,000</span>
+                </div>
+                <div class="inventory-item">
+                    <span>📱 Телефон:</span>
+                    <span>iPhone 15</span>
+                </div>
+                <div class="inventory-item">
+                    <span>₿ Криптовалюта:</span>
+                    <span id="inventoryCrypto">0 BTC</span>
+                </div>
+            </div>
+
+            <!-- Работа -->
+            <div class="tab-content" id="jobsContent">
+                <div class="job-option">
+                    <h4>💼 Офисный работник</h4>
+                    <p>Зарплата: $80 | Энергия: -20%</p>
+                    <button class="action-btn" onclick="startJob('office')">Начать работу</button>
+                </div>
+                <div class="job-option">
+                    <h4>🚕 Таксист</h4>
+                    <p>Зарплата: $120 | Энергия: -30%</p>
+                    <button class="action-btn" onclick="startJob('taxi')">Начать работу</button>
+                </div>
+                <div class="job-option">
+                    <h4>🎰 Крупье</h4>
+                    <p>Зарплата: $150 | Энергия: -25%</p>
+                    <button class="action-btn" onclick="startJob('dealer')">Начать работу</button>
+                </div>
+                <div class="job-option">
+                    <h4>💻 Программист</h4>
+                    <p>Зарплата: $200 | Энергия: -35%</p>
+                    <button class="action-btn" onclick="startJob('programmer')">Начать работу</button>
+                </div>
+            </div>
+
+            <!-- Криптовалюта -->
+            <div class="tab-content" id="cryptoContent">
+                <h4>📊 Курсы криптовалют</h4>
+                <div class="crypto-price">
+                    <span>₿ Bitcoin:</span>
+                    <span class="price-up" id="btcPrice">$45,231 +2.5%</span>
+                </div>
+                <div class="crypto-price">
+                    <span>Ξ Ethereum:</span>
+                    <span class="price-up" id="ethPrice">$3,215 +1.8%</span>
+                </div>
+                <div class="crypto-price">
+                    <span>Ɖ Dogecoin:</span>
+                    <span class="price-down" id="dogePrice">$0.15 -0.3%</span>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="action-btn" onclick="buyCrypto('btc')">Купить Bitcoin</button>
+                    <button class="action-btn secondary" onclick="sellCrypto('btc')">Продать Bitcoin</button>
+                </div>
+            </div>
+
+            <!-- Недвижимость -->
+            <div class="tab-content" id="propertiesContent">
+                <div class="job-option">
+                    <h4>🏠 Квартира в центре</h4>
+                    <p>Цена: $50,000 | Доход: $500/мес</p>
+                    <button class="action-btn" onclick="buyProperty('apartment')">Купить</button>
+                </div>
+                <div class="job-option">
+                    <h4>🚗 Honda Civic</h4>
+                    <p>Цена: $25,000 | Скорость: +50%</p>
+                    <button class="action-btn" onclick="buyProperty('car')">Купить</button>
+                </div>
+                <div class="job-option">
+                    <h4>🏢 Офисное здание</h4>
+                    <p>Цена: $200,000 | Доход: $2,000/мес</p>
+                    <button class="action-btn" onclick="buyProperty('office')">Купить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+
+        // Состояние игры
+        let gameState = {
+            money: 1000,
+            energy: 100,
+            level: 1,
+            experience: 0,
+            time: "08:00",
+            currentLocation: "home",
+            crypto: {
+                btc: 0,
+                eth: 0,
+                doge: 0
+            },
+            properties: {
+                car: "Honda Civic",
+                house: "Квартира в центре",
+                office: false
+            },
+            job: "office",
+            cryptoPrices: {
+                btc: 45231,
+                eth: 3215,
+                doge: 0.15
+            }
+        };
+
+        // Локации игры
+        const locations = {
+            home: {
+                name: "Ваш дом",
+                emoji: "🏠",
+                description: "Вы находитесь дома. Можно отдохнуть или отправиться в город.",
+                actions: ["rest", "sleep"]
+            },
+            work: {
+                name: "Рабочий офис",
+                emoji: "🏢",
+                description: "Вы на работе. Время зарабатывать деньги!",
+                actions: ["work", "meeting"]
+            },
+            city: {
+                name: "Центр города",
+                emoji: "🏙️",
+                description: "Городской центр. Здесь есть магазины, банки и развлечения.",
+                actions: ["shop", "bank", "entertainment"]
+            },
+            casino: {
+                name: "Казино Golden",
+                emoji: "🎰",
+                description: "Казино Golden. Испытайте свою удачу!",
+                actions: ["gamble", "drink", "socialize"]
+            }
+        };
+
+        // Инициализация игры
+        function initGame() {
+            loadGameState();
+            updateUI();
+            startGameClock();
+            updateCryptoPrices();
+            setupTelegramStars();
+        }
+
+        // Загрузка состояния игры
+        function loadGameState() {
+            const saved = localStorage.getItem('life_simulator_save');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(gameState, parsed);
+            }
+        }
+
+        // Сохранение состояния игры
+        function saveGameState() {
+            localStorage.setItem('life_simulator_save', JSON.stringify(gameState));
+        }
+
+        // Перемещение между локациями
+        function moveToLocation(locationId) {
+            const location = locations[locationId];
+            if (!location) return;
+
+            gameState.currentLocation = locationId;
+            
+            document.getElementById('locationImage').textContent = location.emoji;
+            document.getElementById('locationName').textContent = location.name;
+            document.getElementById('locationDescription').textContent = location.description;
+
+            showNotification(`Вы переместились в: ${location.name}`);
+            saveGameState();
+        }
+
+        // Вход в здание
+        function enterBuilding(buildingType) {
+            const buildingActions = {
+                house: () => showNotification("🏠 Вы дома! Отдыхайте и восстанавливайте силы."),
+                office: () => showNotification("🏢 Вы в офисе! Начните работать чтобы заработать деньги."),
+                casino: () => showNotification("🎰 Добро пожаловать в казино! Испытайте удачу."),
+                car_dealer: () => showNotification("🚗 Автосалон. Присмотрите себе новый автомобиль!"),
+                bank: () => showNotification("🏦 Банк. Управляйте своими финансами и инвестициями.")
+            };
+
+            if (buildingActions[buildingType]) {
+                buildingActions[buildingType]();
+            }
+        }
+
+        // Выполнение действий
+        function performAction(action) {
+            const actions = {
+                work: () => {
+                    if (gameState.energy >= 20) {
+                        const earnings = Math.floor(Math.random() * 100) + 50;
+                        gameState.money += earnings;
+                        updateEnergy(-20);
+                        addExperience(10);
+                        showNotification(`💼 Вы поработали и заработали $${earnings}!`);
+                    } else {
+                        showNotification("❌ Недостаточно энергии для работы!");
+                    }
+                },
+                rest: () => {
+                    updateEnergy(30);
+                    showNotification("😴 Вы отдохнули и восстановили энергию!");
+                },
+                casino: () => {
+                    if (gameState.money >= 50) {
+                        const win = Math.random() > 0.6;
+                        const amount = win ? 100 : -50;
+                        gameState.money += amount;
+                        
+                        if (win) {
+                            showNotification("🎰 Вы выиграли $100 в казино! 🎉");
+                        } else {
+                            showNotification("🎰 Вы проиграли $50 в казино... 💸");
+                        }
+                    } else {
+                        showNotification("❌ Недостаточно денег для игры в казино!");
+                    }
+                },
+                crypto: () => {
+                    showNotification("₿ Открыт раздел криптовалют! Проверьте курсы и инвестируйте.");
+                }
+            };
+
+            if (actions[action]) {
+                actions[action]();
+                updateUI();
+                saveGameState();
+            }
+        }
+
+        // Начать работу
+        function startJob(jobType) {
+            const jobs = {
+                office: { name: "Офисный работник", earnings: 80, energy: 20 },
+                taxi: { name: "Таксист", earnings: 120, energy: 30 },
+                dealer: { name: "Крупье", earnings: 150, energy: 25 },
+                programmer: { name: "Программист", earnings: 200, energy: 35 }
+            };
+
+            const job = jobs[jobType];
+            if (gameState.energy >= job.energy) {
+                gameState.money += job.earnings;
+                gameState.job = jobType;
+                updateEnergy(-job.energy);
+                addExperience(15);
+                showNotification(`💼 Вы поработали как ${job.name} и заработали $${job.earnings}!`);
+                updateUI();
+                saveGameState();
+            } else {
+                showNotification("❌ Недостаточно энергии для этой работы!");
+            }
+        }
+
+        // Покупка недвижимости
+        function buyProperty(propertyType) {
+            const properties = {
+                apartment: { price: 50000, name: "Квартира в центре" },
+                car: { price: 25000, name: "Honda Civic" },
+                office: { price: 200000, name: "Офисное здание" }
+            };
+
+            const property = properties[propertyType];
+            if (gameState.money >= property.price) {
+                gameState.money -= property.price;
+                gameState.properties[propertyType] = property.name;
+                showNotification(`✅ Вы купили ${property.name} за $${property.price.toLocaleString()}!`);
+                updateUI();
+                saveGameState();
+            } else {
+                showNotification(`❌ Недостаточно денег для покупки ${property.name}!`);
+            }
+        }
+
+        // Криптовалюты
+        function buyCrypto(cryptoType) {
+            const amount = 100; // $100 за транзакцию
+            if (gameState.money >= amount) {
+                gameState.money -= amount;
+                gameState.crypto[cryptoType] += amount / gameState.cryptoPrices[cryptoType];
+                showNotification(`✅ Куплено ${cryptoType.toUpperCase()} на $${amount}`);
+                updateUI();
+                saveGameState();
+            } else {
+                showNotification("❌ Недостаточно денег для покупки криптовалюты!");
+            }
+        }
+
+        function sellCrypto(cryptoType) {
+            if (gameState.crypto[cryptoType] > 0) {
+                const value = gameState.crypto[cryptoType] * gameState.cryptoPrices[cryptoType];
+                gameState.money += value;
+                gameState.crypto[cryptoType] = 0;
+                showNotification(`✅ Продано ${cryptoType.toUpperCase()} на $${value.toFixed(2)}`);
+                updateUI();
+                saveGameState();
+            } else {
+                showNotification(`❌ У вас нет ${cryptoType.toUpperCase()} для продажи!`);
+            }
+        }
+
+        // Обновление энергии
+        function updateEnergy(change) {
+            gameState.energy = Math.max(0, Math.min(100, gameState.energy + change));
+        }
+
+        // Добавление опыта
+        function addExperience(exp) {
+            gameState.experience += exp;
+            if (gameState.experience >= 100) {
+                gameState.level++;
+                gameState.experience = 0;
+                showNotification(`🎉 Поздравляем! Вы достигли уровня ${gameState.level}!`);
+            }
+        }
+
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('money').textContent = '$' + gameState.money.toLocaleString();
+            document.getElementById('energy').textContent = gameState.energy + '%';
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('time').textContent = gameState.time;
+            
+            // Обновление инвентаря
+            document.getElementById('inventoryCar').textContent = gameState.properties.car;
+            document.getElementById('inventoryHouse').textContent = gameState.properties.house;
+            document.getElementById('inventoryCash').textContent = '$' + gameState.money.toLocaleString();
+            document.getElementById('inventoryCrypto').textContent = gameState.crypto.btc.toFixed(6) + ' BTC';
+        }
+
+        // Обновление цен на криптовалюту
+        function updateCryptoPrices() {
+            // Случайное изменение цен
+            Object.keys(gameState.cryptoPrices).forEach(crypto => {
+                const change = (Math.random() - 0.5) * 0.1; // ±5%
+                gameState.cryptoPrices[crypto] *= (1 + change);
+            });
+
+            // Обновление отображения
+            document.getElementById('btcPrice').textContent = '$' + gameState.cryptoPrices.btc.toFixed(0) + ' ' + 
+                (Math.random() > 0.5 ? '📈' : '📉');
+            document.getElementById('ethPrice').textContent = '$' + gameState.cryptoPrices.eth.toFixed(0) + ' ' + 
+                (Math.random() > 0.5 ? '📈' : '📉');
+            document.getElementById('dogePrice').textContent = '$' + gameState.cryptoPrices.doge.toFixed(2) + ' ' + 
+                (Math.random() > 0.5 ? '📈' : '📉');
+
+            // Повторяем каждые 30 секунд
+            setTimeout(updateCryptoPrices, 30000);
+        }
+
+        // Игровые часы
+        function startGameClock() {
+            let minutes = 0;
+            let hours = 8;
+            
+            setInterval(() => {
+                minutes += 10;
+                if (minutes >= 60) {
+                    minutes = 0;
+                    hours = (hours + 1) % 24;
+                }
+                gameState.time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                updateUI();
+            }, 10000); // 10 секунд = 10 минут игрового времени
+        }
+
+        // Показать уведомление
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Настройка Telegram Stars
+        function setupTelegramStars() {
+            // Обработчик для будущих покупок
+            tg.onEvent('invoiceClosed', (event) => {
+                if (event.status === 'paid') {
+                    gameState.money += 1000;
+                    showNotification("💎 Спасибо за поддержку! Получено $1000 бонусных денег!");
+                    updateUI();
+                    saveGameState();
+                }
+            });
+        }
+
+        // Обработчики вкладок
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Убираем активный класс у всех вкладок
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                // Скрываем все контенты
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Активируем выбранную вкладку
+                tab.classList.add('active');
+                const tabName = tab.getAttribute('data-tab');
+                document.getElementById(`${tabName}Content`).classList.add('active');
+            });
+        });
+
+        // Запуск игры при загрузке
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
